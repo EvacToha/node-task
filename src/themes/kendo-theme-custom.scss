@@ -1,0 +1,9 @@
+// Use the theme with modified primary color via $kendo-colors map.
+// @use "@progress/kendo-theme-default/scss/all.scss" as * with (
+//   $kendo-colors: (
+//     primary: #2757b7,
+//   )
+// );
+
+// Use the theme as is.
+@use "@progress/kendo-theme-default/scss/all.scss" as *;
