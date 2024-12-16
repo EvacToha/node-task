@@ -4,6 +4,7 @@ import ModalTree from "../features/modalTree";
 
 import { TreeViewDataItem } from "../interfaces";
 import axios from "axios";
+import { apiClient } from "../axios";
 
 export const ModalKendoPage = () => {
   const [tree, setTree] = useState<TreeViewDataItem[]>();
@@ -14,9 +15,7 @@ export const ModalKendoPage = () => {
     const fetchNodes = async () => {
       try {
         setIsLoading(true);
-        const response = await axios.get<TreeViewDataItem[]>(
-          "http://localhost:5128/api/nodes"
-        );
+        const response = await apiClient.get<TreeViewDataItem[]>("/nodes");
         setTree(response.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Ошибка");
