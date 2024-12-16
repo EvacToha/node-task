@@ -46,7 +46,7 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
     () => tree.filter((n) => treeFilter({ node: n, callbackFilter })),
     [tree, callbackFilter]
   );
-
+  console.log("render");
   const [samples, setSamples] = useState<Map<number, Sample[]>>(new Map());
 
   const [nodesSelected, setNodesSelected] = useState<number[]>([]);
@@ -59,9 +59,12 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
     try {
       const response = await apiClient.get<Sample[]>(`/sample/${id}`);
 
-      const newMap = new Map(samples);
-      newMap.set(id, response.data);
-      setSamples(newMap);
+      setSamples((prevMap) => {
+        const newMap = new Map(prevMap);
+        newMap.set(id, response.data);
+        return newMap;
+      });
+
       console.log(response.data);
     } catch (err) {
       console.error("Error:", (err as Error).message);
@@ -75,7 +78,7 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
         notCashedIds.push(ids[i]);
       }
     }
-    if (notCashedIds.length == 0) {
+    if (notCashedIds.length === 0) {
       return;
     }
 
@@ -84,14 +87,18 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
         "/sample/by-node-ids",
         notCashedIds
       );
-      const newMap = new Map(samples);
-      for (let i = 0; i < notCashedIds.length; i++) {
-        newMap.set(
-          notCashedIds[i],
-          response.data.filter((n) => n.nodeId === notCashedIds[i])
-        );
-      }
-      setSamples(newMap);
+
+      setSamples((prevMap) => {
+        const newMap = new Map(prevMap);
+        for (let i = 0; i < notCashedIds.length; i++) {
+          newMap.set(
+            notCashedIds[i],
+            response.data.filter((n) => n.nodeId === notCashedIds[i])
+          );
+        }
+        return newMap;
+      });
+
       console.log(response.data);
     } catch (err) {
       console.error("Error:", (err as Error).message);
@@ -99,35 +106,37 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
   };
 
   const onExpandChange = (event: TreeViewExpandChangeEvent) => {
-    if (nodesExpanded.includes(event.item.id)) {
-      setNodesExpanded(nodesExpanded.filter((item) => item !== event.item.id));
+    if (!nodesExpanded.includes(event.item.id)) {
+      setNodesExpanded((prevNodes) => [...prevNodes, event.item.id]);
     } else {
-      setNodesExpanded([...nodesExpanded, event.item.id]);
+      setNodesExpanded((prevNodes) =>
+        prevNodes.filter((item) => item !== event.item.id)
+      );
     }
   };
 
-  const onItemClick = (event: TreeViewItemClickEvent) => {
-    if (event.itemHierarchicalIndex.length !== 1) {
+  const onItemClick = async (event: TreeViewItemClickEvent) => {
+    if (event.itemHierarchicalIndex.length === 1) {
       if (!nodesSelected.includes(event.item.id)) {
-        setNodesSelected([...nodesSelected, event.item.id]);
-        fetchSampleById(event.item.id);
+        const indexes = allIndexesParent(event.item);
+        await fetchSampleByIds(indexes);
+        setNodesSelected((prevNodes) => [
+          ...prevNodes,
+          ...indexes.filter((item) => !nodesSelected.includes(item)),
+        ]);
       } else {
-        setNodesSelected(
-          nodesSelected.filter((item) => item !== event.item.id)
-        );
+        const indexes = allIndexesParent(event.item);
+        setNodesSelected((prevNodes) => {
+          return prevNodes.filter((item) => !indexes.includes(item));
+        });
       }
     } else {
       if (!nodesSelected.includes(event.item.id)) {
-        const indexes = allIndexesParent(event.item);
-        setNodesSelected([
-          ...nodesSelected,
-          ...indexes.filter((item) => !nodesSelected.includes(item)),
-        ]);
-        fetchSampleByIds(indexes);
+        await fetchSampleById(event.item.id);
+        setNodesSelected((prevNodes) => [...prevNodes, event.item.id]);
       } else {
-        const indexes = allIndexesParent(event.item);
-        setNodesSelected(
-          nodesSelected.filter((item) => !indexes.includes(item))
+        setNodesSelected((prevNodes) =>
+          prevNodes.filter((item) => item !== event.item.id)
         );
       }
     }
