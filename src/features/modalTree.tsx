@@ -56,6 +56,7 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
     if (samples.has(id)) {
       return;
     }
+
     try {
       const response = await apiClient.get<Sample[]>(`/sample/${id}`);
 
@@ -108,11 +109,11 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
   const onExpandChange = (event: TreeViewExpandChangeEvent) => {
     if (!nodesExpanded.includes(event.item.id)) {
       setNodesExpanded((prevNodes) => [...prevNodes, event.item.id]);
-    } else {
-      setNodesExpanded((prevNodes) =>
-        prevNodes.filter((item) => item !== event.item.id)
-      );
+      return;
     }
+    setNodesExpanded((prevNodes) =>
+      prevNodes.filter((item) => item !== event.item.id)
+    );
   };
 
   const onItemClick = async (event: TreeViewItemClickEvent) => {
@@ -122,24 +123,24 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
         await fetchSampleByIds(indexes);
         setNodesSelected((prevNodes) => [
           ...prevNodes,
-          ...indexes.filter((item) => !nodesSelected.includes(item)),
+          ...indexes.filter((item) => !prevNodes.includes(item)),
         ]);
-      } else {
-        const indexes = allIndexesParent(event.item);
-        setNodesSelected((prevNodes) => {
-          return prevNodes.filter((item) => !indexes.includes(item));
-        });
+        return;
       }
-    } else {
-      if (!nodesSelected.includes(event.item.id)) {
-        await fetchSampleById(event.item.id);
-        setNodesSelected((prevNodes) => [...prevNodes, event.item.id]);
-      } else {
-        setNodesSelected((prevNodes) =>
-          prevNodes.filter((item) => item !== event.item.id)
-        );
-      }
+      const indexes = allIndexesParent(event.item);
+      setNodesSelected((prevNodes) =>
+        prevNodes.filter((item) => !indexes.includes(item))
+      );
+      return;
     }
+    if (!nodesSelected.includes(event.item.id)) {
+      await fetchSampleById(event.item.id);
+      setNodesSelected((prevNodes) => [...prevNodes, event.item.id]);
+      return;
+    }
+    setNodesSelected((prevNodes) =>
+      prevNodes.filter((item) => item !== event.item.id)
+    );
   };
 
   const treeSelect = (node: TreeViewDataItem) => {
