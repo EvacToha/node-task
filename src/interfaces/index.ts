@@ -23,3 +23,11 @@ export interface Sample {
   createDate: string;
   createdBy: string;
 }
+
+export interface Token {
+  token: string;
+}
+
+export interface ErrorData {
+  message: string;
+}

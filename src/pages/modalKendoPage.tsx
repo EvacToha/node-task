@@ -3,7 +3,7 @@
 import ModalTree from "../features/modalTree";
 
 import { TreeViewDataItem } from "../interfaces";
-import axios from "axios";
+
 import { apiClient } from "../axios";
 
 export const ModalKendoPage = () => {
@@ -15,7 +15,10 @@ export const ModalKendoPage = () => {
     const fetchNodes = async () => {
       try {
         setIsLoading(true);
-        const response = await apiClient.get<TreeViewDataItem[]>("/nodes");
+        const jwt = localStorage.getItem("jwt");
+        const response = await apiClient.get<TreeViewDataItem[]>("/nodes", {
+          headers: { Authorization: `Bearer ${jwt}` },
+        });
         setTree(response.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Ошибка");

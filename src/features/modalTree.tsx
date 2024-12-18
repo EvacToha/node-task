@@ -1,7 +1,8 @@
 ﻿import { Window } from "@progress/kendo-react-dialogs";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   TreeView,
+  TreeViewContextMenuEvent,
   TreeViewExpandChangeEvent,
   TreeViewItemClickEvent,
 } from "@progress/kendo-react-treeview";
@@ -21,6 +22,8 @@ import {
   StyledGrid,
   StyledTreeView,
 } from "../styles/modalWindowStyle";
+import { Offset, Popup } from "@progress/kendo-react-popup";
+import { Menu, MenuItem } from "@progress/kendo-react-layout";
 
 const treeFilter = ({ node, callbackFilter }: NodeFilterProps) => {
   if (!callbackFilter(node)) {
@@ -46,11 +49,21 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
     () => tree.filter((n) => treeFilter({ node: n, callbackFilter })),
     [tree, callbackFilter]
   );
-  console.log("render");
+  const offSet = useRef<Offset>({ left: 0, top: 0 });
+  const [show, setShow] = useState(false);
+
   const [samples, setSamples] = useState<Map<number, Sample[]>>(new Map());
 
   const [nodesSelected, setNodesSelected] = useState<number[]>([]);
   const [nodesExpanded, setNodesExpanded] = useState<number[]>([]);
+
+  useEffect(() => {
+    document.addEventListener("click", () => {
+      if (show) {
+        setShow(() => false);
+      }
+    });
+  }, [show]);
 
   const fetchSampleById = async (id: number) => {
     if (samples.has(id)) {
@@ -58,15 +71,16 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
     }
 
     try {
-      const response = await apiClient.get<Sample[]>(`/sample/${id}`);
+      const jwt = localStorage.getItem("jwt");
+      const response = await apiClient.get<Sample[]>(`/sample/${id}`, {
+        headers: { Authorization: `Bearer ${jwt}` },
+      });
 
       setSamples((prevMap) => {
         const newMap = new Map(prevMap);
         newMap.set(id, response.data);
         return newMap;
       });
-
-      console.log(response.data);
     } catch (err) {
       console.error("Error:", (err as Error).message);
     }
@@ -84,9 +98,13 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
     }
 
     try {
+      const jwt = localStorage.getItem("jwt");
       const response = await apiClient.post<Sample[]>(
         "/sample/by-node-ids",
-        notCashedIds
+        notCashedIds,
+        {
+          headers: { Authorization: `Bearer ${jwt}` },
+        }
       );
 
       setSamples((prevMap) => {
@@ -99,8 +117,6 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
         }
         return newMap;
       });
-
-      console.log(response.data);
     } catch (err) {
       console.error("Error:", (err as Error).message);
     }
@@ -114,6 +130,18 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
     setNodesExpanded((prevNodes) =>
       prevNodes.filter((item) => item !== event.item.id)
     );
+  };
+
+  const handleContextMenu = (e: TreeViewContextMenuEvent) => {
+    e.syntheticEvent.preventDefault();
+
+    if (e.itemID.length !== 1) {
+      offSet.current = {
+        left: e.syntheticEvent.clientX,
+        top: e.syntheticEvent.clientY,
+      };
+      setShow((prevState) => !prevState);
+    }
   };
 
   const onItemClick = async (event: TreeViewItemClickEvent) => {
@@ -178,6 +206,7 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
             onItemClick={onItemClick}
             textField={"name"}
             childrenField={"children"}
+            onContextMenu={handleContextMenu}
           />
         </StyledTreeView>
         <StyledGrid>
@@ -188,6 +217,11 @@ const ModalTree = ({ tree, callbackFilter }: ModalTreeProps) => {
           </Grid>
         </StyledGrid>
       </HorizontalContainer>
+      <Popup show={show} offset={offSet.current}>
+        <Menu vertical={true} style={{ display: "inline-block" }}>
+          <MenuItem text="Создать объект"></MenuItem>
+        </Menu>
+      </Popup>
     </Window>
   );
 };
