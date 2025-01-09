@@ -1,4 +1,6 @@
-﻿export interface TreeViewDataItem {
+﻿import { GridCustomCellProps } from "@progress/kendo-react-grid";
+
+export interface TreeViewDataItem {
   id: number;
   name: string;
   type?: string;
@@ -18,10 +20,12 @@ export interface NodeFilterProps {
 }
 
 export interface Sample {
+  id: number | null;
   nodeId: number;
   name: string;
-  createDate: string;
+  createDate: Date;
   createdBy: string;
+  inEdit?: boolean;
 }
 
 export interface Token {
@@ -30,4 +34,9 @@ export interface Token {
 
 export interface ErrorData {
   message: string;
+}
+
+export interface CommandCellProps extends GridCustomCellProps {
+  add: (item: Sample) => void;
+  discard: () => void;
 }

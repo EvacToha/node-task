@@ -19,6 +19,7 @@ const LoginPage = () => {
 
   const fetchLoginUser = async (dataItem: { [name: string]: unknown }) => {
     try {
+      console.log(dataItem);
       const response = await apiClient.post<Token>(`/User/Login`, dataItem);
 
       localStorage.setItem("jwt", response.data.token);
@@ -27,6 +28,7 @@ const LoginPage = () => {
       setError(((err as AxiosError).response!.data as ErrorData).message);
     }
   };
+
   const handleSubmit = async (dataItem: { [name: string]: unknown }) => {
     await fetchLoginUser(dataItem);
   };
@@ -37,7 +39,7 @@ const LoginPage = () => {
         onSubmit={handleSubmit}
         render={() => (
           <FormElement>
-            <Field label="Логин" name="username" component={Input} />
+            <Field label="Логин" name="login" component={Input} />
             <Field
               label="Пароль"
               name="password"
